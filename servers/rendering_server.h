@@ -817,6 +817,9 @@ public:
 	virtual void viewport_set_disable_2d(RID p_viewport, bool p_disable) = 0;
 
 	virtual void viewport_attach_camera(RID p_viewport, RID p_camera) = 0;
+	virtual void viewport_attach_overlay_camera(RID p_viewport, RID p_camera) = 0;
+	virtual void viewport_detach_overlay_camera(RID p_viewport, RID p_camera) = 0;
+	virtual void viewport_set_camera_priority(RID p_viewport, RID p_camera, int p_priority) = 0;
 	virtual void viewport_set_scenario(RID p_viewport, RID p_scenario) = 0;
 	virtual void viewport_attach_canvas(RID p_viewport, RID p_canvas) = 0;
 	virtual void viewport_remove_canvas(RID p_viewport, RID p_canvas) = 0;

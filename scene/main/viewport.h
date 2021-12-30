@@ -653,6 +653,9 @@ public:
 	bool _camera_3d_add(Camera3D *p_camera); //true if first
 	void _camera_3d_remove(Camera3D *p_camera);
 	void _camera_3d_make_next_current(Camera3D *p_exclude);
+	void _camera_3d_make_overlay(Camera3D *p_camera);
+	void _camera_3d_clear_overlay(Camera3D *p_camera);
+	void _camera_3d_set_priority(Camera3D *p_camera, int priority);
 
 	void enable_camera_3d_override(bool p_enable);
 	bool is_camera_3d_override_enabled() const;

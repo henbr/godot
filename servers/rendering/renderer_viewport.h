@@ -51,8 +51,19 @@ public:
 
 		Size2i internal_size;
 		Size2i size;
-		RID camera;
 		RID scenario;
+
+		struct CameraData {
+			RID camera;
+			int32_t priority = 0;
+			struct Sort {
+				bool operator()(const CameraData &p_left, const CameraData &p_right) const {
+					return p_left.priority < p_right.priority;
+				}
+			};
+		};
+		CameraData current_camera;
+		LocalVector<CameraData> overlay_cameras;
 
 		RS::ViewportScaling3DMode scaling_3d_mode;
 		float scaling_3d_scale = 1.0;
@@ -238,6 +249,9 @@ public:
 	void viewport_set_disable_3d(RID p_viewport, bool p_disable);
 
 	void viewport_attach_camera(RID p_viewport, RID p_camera);
+	void viewport_attach_overlay_camera(RID p_viewport, RID p_camera);
+	void viewport_detach_overlay_camera(RID p_viewport, RID p_camera);
+	void viewport_set_camera_priority(RID p_viewport, RID p_camera, int p_priority);
 	void viewport_set_scenario(RID p_viewport, RID p_scenario);
 	void viewport_attach_canvas(RID p_viewport, RID p_canvas);
 	void viewport_remove_canvas(RID p_viewport, RID p_canvas);

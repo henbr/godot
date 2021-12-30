@@ -168,7 +168,16 @@ void RendererViewport::_draw_3d(Viewport *p_viewport) {
 	}
 
 	float screen_lod_threshold = p_viewport->lod_threshold / float(p_viewport->size.width);
-	RSG::scene->render_camera(p_viewport->render_buffers, p_viewport->camera, p_viewport->scenario, p_viewport->self, p_viewport->internal_size, screen_lod_threshold, p_viewport->shadow_atlas, xr_interface, &p_viewport->render_info);
+
+	auto cameras = LocalVector<Viewport::CameraData>(p_viewport->overlay_cameras);
+	cameras.push_back(p_viewport->current_camera);
+	cameras.sort_custom<Viewport::CameraData::Sort>();
+	for (uint32_t cameraIndex = 0; cameraIndex < cameras.size(); cameraIndex++) {
+		if (!RSG::scene->is_camera(cameras[cameraIndex].camera)) {
+			continue;
+		}
+		RSG::scene->render_camera(p_viewport->render_buffers, cameras[cameraIndex].camera, p_viewport->scenario, p_viewport->self, p_viewport->internal_size, screen_lod_threshold, p_viewport->shadow_atlas, xr_interface, &p_viewport->render_info);
+	}
 
 	RENDER_TIMESTAMP("<End Rendering 3D Scene");
 }
@@ -206,7 +215,7 @@ void RendererViewport::_draw_viewport(Viewport *p_viewport) {
 		}
 	}
 
-	bool can_draw_3d = RSG::scene->is_camera(p_viewport->camera) && !p_viewport->disable_3d;
+	bool can_draw_3d = RSG::scene->is_camera(p_viewport->current_camera.camera) && !p_viewport->disable_3d;
 
 	if (p_viewport->clear_mode != RS::VIEWPORT_CLEAR_NEVER) {
 		if (p_viewport->transparent_bg) {
@@ -924,7 +933,53 @@ void RendererViewport::viewport_attach_camera(RID p_viewport, RID p_camera) {
 	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
 	ERR_FAIL_COND(!viewport);
 
-	viewport->camera = p_camera;
+	viewport_detach_overlay_camera(p_viewport, p_camera);
+
+	viewport->current_camera = { .camera = p_camera, .priority = 0 };
+}
+
+void RendererViewport::viewport_attach_overlay_camera(RID p_viewport, RID p_camera) {
+	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
+	ERR_FAIL_COND(!viewport);
+
+	if (viewport->current_camera.camera == p_camera) {
+		return;
+	}
+
+	for (uint32_t i = 0; i < viewport->overlay_cameras.size(); i++) {
+		if (viewport->overlay_cameras[i].camera == p_camera) {
+			return;
+		}
+	}
+
+	viewport->overlay_cameras.push_back({ .camera = p_camera, .priority = -1 });
+}
+
+void RendererViewport::viewport_detach_overlay_camera(RID p_viewport, RID p_camera) {
+	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
+	ERR_FAIL_COND(!viewport);
+
+	for (uint32_t i = 0; i < viewport->overlay_cameras.size(); i++) {
+		if (viewport->overlay_cameras[i].camera == p_camera) {
+			viewport->overlay_cameras.remove_at_unordered(i);
+			return;
+		}
+	}
+}
+
+void RendererViewport::viewport_set_camera_priority(RID p_viewport, RID p_camera, int p_priority) {
+	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
+	ERR_FAIL_COND(!viewport);
+
+	if (viewport->current_camera.camera == p_camera) {
+		viewport->current_camera.priority = p_priority;
+	}
+
+	for (uint32_t i = 0; i < viewport->overlay_cameras.size(); i++) {
+		if (viewport->overlay_cameras[i].camera == p_camera) {
+			viewport->overlay_cameras[i].priority = p_priority;
+		}
+	}
 }
 
 void RendererViewport::viewport_set_scenario(RID p_viewport, RID p_scenario) {

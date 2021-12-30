@@ -58,6 +58,8 @@ public:
 private:
 	bool force_change = false;
 	bool current = false;
+	bool overlay = false;
+	int priority = 0;
 	Viewport *viewport = nullptr;
 
 	Projection mode = PROJECTION_PERSPECTIVE;
@@ -174,6 +176,14 @@ public:
 	Vector3 get_doppler_tracked_velocity() const;
 
 	RID get_pyramid_shape_rid();
+
+	void make_overlay();
+	void clear_overlay();
+	void set_overlay(bool p_overlay);
+	bool is_overlay() const;
+
+	void set_priority(int p_priority);
+	int get_priority() const;
 
 	Camera3D();
 	~Camera3D();

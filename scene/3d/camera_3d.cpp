@@ -105,9 +105,14 @@ void Camera3D::_notification(int p_what) {
 			ERR_FAIL_COND(!viewport);
 
 			bool first_camera = viewport->_camera_3d_add(this);
-			if (current || first_camera) {
+
+			if ((current || first_camera) && !overlay) {
 				viewport->_camera_3d_set(this);
+			} else if (overlay) {
+				viewport->_camera_3d_make_overlay(this);
 			}
+
+			viewport->_camera_3d_set_priority(this, priority);
 
 		} break;
 		case NOTIFICATION_TRANSFORM_CHANGED: {
@@ -214,6 +219,10 @@ RID Camera3D::get_camera() const {
 };
 
 void Camera3D::make_current() {
+	if (is_overlay()) {
+		return;
+	}
+
 	current = true;
 
 	if (!is_inside_tree()) {
@@ -495,6 +504,10 @@ void Camera3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_position_in_frustum", "world_point"), &Camera3D::is_position_in_frustum);
 	ClassDB::bind_method(D_METHOD("get_camera_rid"), &Camera3D::get_camera);
 	ClassDB::bind_method(D_METHOD("get_pyramid_shape_rid"), &Camera3D::get_pyramid_shape_rid);
+	ClassDB::bind_method(D_METHOD("is_overlay"), &Camera3D::is_overlay);
+	ClassDB::bind_method(D_METHOD("set_overlay", "overlay"), &Camera3D::set_overlay);
+	ClassDB::bind_method(D_METHOD("get_priority"), &Camera3D::get_priority);
+	ClassDB::bind_method(D_METHOD("set_priority", "priority"), &Camera3D::set_priority);
 
 	ClassDB::bind_method(D_METHOD("set_cull_mask_value", "layer_number", "value"), &Camera3D::set_cull_mask_value);
 	ClassDB::bind_method(D_METHOD("get_cull_mask_value", "layer_number"), &Camera3D::get_cull_mask_value);
@@ -510,6 +523,8 @@ void Camera3D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "doppler_tracking", PROPERTY_HINT_ENUM, "Disabled,Idle,Physics"), "set_doppler_tracking", "get_doppler_tracking");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "projection", PROPERTY_HINT_ENUM, "Perspective,Orthogonal,Frustum"), "set_projection", "get_projection");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "current"), "set_current", "is_current");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "overlay"), "set_overlay", "is_overlay");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "priority"), "set_priority", "get_priority");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "fov", PROPERTY_HINT_RANGE, "1,179,0.1,degrees"), "set_fov", "get_fov");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "size", PROPERTY_HINT_RANGE, "0.1,16384,0.01"), "set_size", "get_size");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "frustum_offset"), "set_frustum_offset", "get_frustum_offset");
@@ -550,6 +565,54 @@ real_t Camera3D::get_far() const {
 
 Camera3D::Projection Camera3D::get_projection() const {
 	return mode;
+}
+
+void Camera3D::make_overlay() {
+	if (is_current()) {
+		return;
+	}
+
+	overlay = true;
+
+	if (!is_inside_tree()) {
+		return;
+	}
+
+	get_viewport()->_camera_3d_make_overlay(this);
+}
+
+void Camera3D::clear_overlay() {
+	overlay = false;
+
+	if (!is_inside_tree()) {
+		return;
+	}
+
+	get_viewport()->_camera_3d_clear_overlay(this);
+}
+
+bool Camera3D::is_overlay() const {
+	return overlay;
+}
+
+void Camera3D::set_overlay(bool p_overlay) {
+	if (p_overlay) {
+		make_overlay();
+	} else {
+		clear_overlay();
+	}
+}
+
+int Camera3D::get_priority() const {
+	return priority;
+}
+
+void Camera3D::set_priority(int p_priority) {
+	priority = p_priority;
+	Viewport *vp = get_viewport();
+	if (vp) {
+		vp->_camera_3d_set_priority(this, p_priority);
+	}
 }
 
 void Camera3D::set_fov(real_t p_fov) {

@@ -3229,6 +3229,24 @@ void Viewport::_camera_3d_make_next_current(Camera3D *p_exclude) {
 	}
 }
 
+void Viewport::_camera_3d_make_overlay(Camera3D *p_camera) {
+	ERR_FAIL_COND(!camera_3d_set.has(p_camera));
+	ERR_FAIL_COND(camera_3d == p_camera);
+
+	RenderingServer::get_singleton()->viewport_attach_overlay_camera(viewport, p_camera->get_camera());
+}
+
+void Viewport::_camera_3d_clear_overlay(Camera3D *p_camera) {
+	ERR_FAIL_COND(!camera_3d_set.has(p_camera));
+	ERR_FAIL_COND(camera_3d == p_camera);
+
+	RenderingServer::get_singleton()->viewport_detach_overlay_camera(viewport, p_camera->get_camera());
+}
+
+void Viewport::_camera_3d_set_priority(Camera3D *p_camera, int p_priority) {
+	RenderingServer::get_singleton()->viewport_set_camera_priority(viewport, p_camera->get_camera(), p_priority);
+}
+
 void Viewport::enable_camera_3d_override(bool p_enable) {
 	if (p_enable == camera_3d_override) {
 		return;
